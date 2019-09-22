@@ -6,7 +6,7 @@
 //  Copyright © 2019 PyrovSergey. All rights reserved.
 //
 
-import Foundation
+import RxSwift
 
 
 protocol UserManagerDelegate: class {
@@ -32,14 +32,19 @@ class UserManager {
 // MARK: - Public interface
 extension UserManager {
     
-    func getUserInfo(name: String) {
+    func getUserInfo(name: String) -> Single<User?> {
         
-        guard ConnectionManager.shared.isConnected else { return }
-        
-        client.getUserInformation(url: URL(string: "\(Keys.requestUserBaseURL.rawValue)\(name)")!, completion: { user in
-            self.user = user
-        }, failure: { error in
-            print(error.localizedDescription)
+        return Single.create(subscribe: { single -> Disposable in
+            
+            guard ConnectionManager.shared.isConnected else {
+                return Disposables.create()
+            }
+            self.client.getUserInformation(url: URL(string: "\(Keys.requestUserBaseURL.rawValue)\(name)")!, completion: { user in
+                single(.success(user))
+            }, failure: { error in
+                single(.error(error))
+            })
+            return Disposables.create()
         })
     }
 }

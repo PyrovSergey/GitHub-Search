@@ -123,7 +123,7 @@ private extension BookmarksViewController {
     
     func startDetailController(bookmark: Bookmark) {
         let vc = DetailViewController.instantinateFromStoryboard()
-        vc.config(bookmark: bookmark)
+        vc.viewModel = DetailViewModel(bookmark: bookmark)
         navigationController?.pushViewController(vc, animated: true)
     }
 }

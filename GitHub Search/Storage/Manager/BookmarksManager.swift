@@ -6,7 +6,7 @@
 //  Copyright © 2019 PyrovSergey. All rights reserved.
 //
 
-import UIKit
+import RxSwift
 import CoreData
 
 
@@ -68,6 +68,22 @@ extension BookmarksManager {
         }
     }
     
+    func save(repository: Repository) -> Completable {
+        return Completable.create(subscribe: { event -> Disposable in
+            
+            let bookmark = self.transfer(repository)
+            
+            do {
+                self.bookmarks?.append(bookmark)
+                try self.context.save()
+                event(.completed)
+            } catch {
+                event(.error(error))
+            }
+            return Disposables.create()
+        })
+    }
+    
     func delete(bookmark: Bookmark) {
         
         context.delete(bookmark)
@@ -80,20 +96,23 @@ extension BookmarksManager {
         }
     }
     
-    func isBookmark(repositoryId: Int) -> Bool {
+    func isBookmark(repositoryId: Int) -> Single<Bool> {
         
-        let fetchRequest: NSFetchRequest<Bookmark> = Bookmark.fetchRequest()
-        let predicate = NSPredicate(format: "repositoryId == %@", String(describing: repositoryId))
-        fetchRequest.predicate = predicate
-        fetchRequest.fetchLimit = 1
-        
-        do {
-            let count = try context.count(for: fetchRequest)
-            guard count != 0 else { return true }
-        } catch {
-            print(error.localizedDescription)
-        }
-        return false
+        return Single.create(subscribe: { single -> Disposable in
+            
+            let fetchRequest: NSFetchRequest<Bookmark> = Bookmark.fetchRequest()
+            let predicate = NSPredicate(format: "repositoryId == %@", String(describing: repositoryId))
+            fetchRequest.predicate = predicate
+            fetchRequest.fetchLimit = 1
+
+            do {
+                let count = try self.context.count(for: fetchRequest)
+                single(.success(count != 0))
+            } catch {
+                single(.error(error))
+            }
+            return Disposables.create()
+        })
     }
 }
 
@@ -110,7 +129,7 @@ private extension BookmarksManager {
         newBookmark.repositoryId = Int64(repository.id)
         newBookmark.repositoryName = repository.nameOfRepository
         newBookmark.repositoryDescription = repository.description
-        newBookmark.ownerId = Int64(repository.userId!)
+        newBookmark.ownerId = Int64(repository.userId ?? 0)
         newBookmark.ownerName = repository.userName
         newBookmark.ownerAvatarUrl = repository.userAvatarUrl
         newBookmark.ownerEmail = repository.userEmail

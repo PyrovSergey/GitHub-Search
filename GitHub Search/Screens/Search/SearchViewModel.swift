@@ -13,59 +13,72 @@ class SearchViewModel: NSObject {
     
     let searchText = BehaviorRelay<String>(value: "")
     
-    let pagination = BehaviorRelay<Int>(value: 0)
-    
-    private var privateDataSource = BehaviorRelay<[Repository]>(value: [])
-    
     var repositories: Driver<[Repository]> {
         return privateDataSource.asDriver()
     }
-
-    private let bag = DisposeBag()
-
-    private lazy var manager = RepositoriesManager()
     
     override init() {
         super.init()
-        
-        manager.delegate = self
-        
-        searchText.subscribe(onNext: { inputText in
-            guard inputText.isEmpty == false else {
-                self.clearRepositoriesList()
-                return
-            }
-            self.findRepository(inputText)
-        }).disposed(by: bag)
+        subscribe()
     }
+    
+    private lazy var manager = RepositoriesManager()
+    private var privateDataSource = BehaviorRelay<[Repository]>(value: [])
+    private let bag = DisposeBag()
 }
 
+// MARK: - Public interface
 extension SearchViewModel {
     
-    func willDisplayCell(index: Int) {
-        // MARK: - Pagination
-        guard privateDataSource.value.count > 0, privateDataSource.value.count - 70 == index else { return }
+    func search() {
         findRepository(searchText.value)
     }
 }
 
-// MARK: - RepositoriesManagerDelegate
-extension SearchViewModel: RepositoriesManagerDelegate {
-
-    func repositoriesManagerDidUpdateList(_ manager: RepositoriesManager) {
-        privateDataSource.accept(privateDataSource.value + manager.requestResultList)
-    }
+// MARK: - Pagination
+extension SearchViewModel {
     
-    func clearRepositoriesList() {
-        privateDataSource.accept([])
+    func willDisplayCell(index: Int) {
+        guard privateDataSource.value.count > 0, privateDataSource.value.count - 70 == index else { return }
+        findRepository(searchText.value)
     }
 }
 
 // MARK: - Private
 private extension SearchViewModel {
     
-    func findRepository(_ name: String) {
-        manager.request(repository: name)
+    func subscribe() {
+        
+        searchText
+            .subscribe(onNext: { inputText in
+                guard inputText.isEmpty == false else {
+                    self.clearRepositories()
+                    return
+                }
+            }).disposed(by: bag)
+        
+        searchText
+            .distinctUntilChanged()
+            .subscribe { (event) in
+                //self.clearRepositories()
+            }.disposed(by: bag)
+        
+        manager.clearList.subscribe(onNext: { _ in
+            self.clearRepositories()
+        }).disposed(by: bag)
     }
     
+    func findRepository(_ name: String) {
+        
+        manager.request(repository: name)
+            .subscribe(onSuccess: { repositories in
+                self.privateDataSource.accept(self.privateDataSource.value + repositories)
+        }) { error in
+            
+        }.disposed(by: bag)
+    }
+    
+    func clearRepositories() {
+        privateDataSource.accept([])
+    }
 }

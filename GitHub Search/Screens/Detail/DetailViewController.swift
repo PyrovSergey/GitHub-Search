@@ -6,32 +6,24 @@
 //  Copyright © 2019 PyrovSergey. All rights reserved.
 //
 
-import UIKit
+import RxSwift
+import RxCocoa
+import SDWebImage
 
 
 class DetailViewController: UIViewController {
 
-    @IBOutlet weak var repositoryName: UILabel!
-    @IBOutlet weak var descriptionRepository: UILabel!
-    @IBOutlet weak var ownerName: UILabel!
-    @IBOutlet weak var ownerEmail: UILabel!
-    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
-    @IBOutlet weak var avatarImage: UIImageView!
-    private var addToBookmarksButton: UIBarButtonItem?
+    @IBOutlet private weak var repositoryName: UILabel!
+    @IBOutlet private weak var descriptionRepository: UILabel!
+    @IBOutlet private weak var ownerName: UILabel!
+    @IBOutlet private weak var ownerEmail: UILabel!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
+    @IBOutlet private weak var avatarImage: UIImageView!
     
-    private var bookmarkManager = BookmarksManager.share
-    private var userManager = UserManager()
+    var viewModel: DetailViewModel?
     
-    private var repository: Repository?
-    private var bookmark: Bookmark?
-    
-    private var user: User? {
-        didSet {
-            activityIndicator.isHidden = true
-            ownerEmail.text = user?.userEmail
-            ownerEmail.isHidden = false
-        }
-    }
+    private var addToBookmarksButton: UIBarButtonItem!
+    private let bag = DisposeBag()
 }
 
 // MARK: - Override
@@ -40,6 +32,8 @@ extension DetailViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
+        viewModel?.checkInBookmarks()
+        viewModel?.getEmail()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -53,90 +47,48 @@ extension DetailViewController {
     }
 }
 
-// MARK: - Public interface
-extension DetailViewController {
-    
-    func config(repository: Repository) {
-        self.repository = repository
-    }
-    
-    func config(bookmark: Bookmark) {
-        self.bookmark = bookmark
-    }
-}
-
-// MARK: - UserManagerDelegate
-extension DetailViewController: UserManagerDelegate {
-    
-    func updateUserInfo(_ manager: UserManager) {
-        user = manager.user
-        repository?.user = user
-    }
-}
-
 // MARK: - Private
 private extension DetailViewController {
     
     func setupView() {
         avatarImage.round()
         addToBookmarksButton = UIBarButtonItem(barButtonSystemItem: UIBarButtonItem.SystemItem.bookmarks, target: self, action: #selector(DetailViewController.clickAddToBookmarksButton))
+        
         navigationItem.rightBarButtonItems = [addToBookmarksButton] as? [UIBarButtonItem]
         
         addToBookmarksButton?.isEnabled = false
         
-        guard repository == nil else {
-            prepareRepositoryInformation()
+        repositoryName.text = viewModel?.repositoryName
+        descriptionRepository.text = viewModel?.descriptionRepository
+        ownerName.text = viewModel?.ownerName
+        
+        viewModel?.email
+            .drive(ownerEmail.rx.text)
+            .disposed(by: bag)
+        
+        viewModel?.isBookmarks
+            .drive(addToBookmarksButton.rx.isEnabled)
+            .disposed(by: bag)
+        
+        viewModel?.email
+            .map{ $0.isEmpty }
+            .drive(activityIndicator.rx.isAnimating)
+            .disposed(by: bag)
+        
+        guard let imageData = viewModel?.imageData else {
+            
+            if let stringUrl = viewModel?.userAvatarUrl {
+                avatarImage.sd_setImage(with: URL(string: stringUrl), placeholderImage: UIImage(named: "placeholder.jpg"))
+            }
             return
         }
-        prepareBookmarkInformation()
-    }
-    
-    func prepareBookmarkInformation() {
-        repositoryName.text = bookmark?.repositoryName
-        descriptionRepository.text = bookmark?.repositoryDescription
-        ownerName.text = bookmark?.ownerName
-        activityIndicator.isHidden = true
-        ownerEmail.text = bookmark?.ownerEmail
-        ownerEmail.isHidden = false
-        avatarImage.image = UIImage(named: "placeholder.jpg")
-        
-        guard let imageData = bookmark?.imageData else { return }
         avatarImage.image = UIImage(data: imageData)
     }
     
-    func prepareRepositoryInformation() {
-        repositoryName.text = repository?.nameOfRepository
-        descriptionRepository.text = repository?.description
-        ownerName.text = repository?.userName
-        getUserInfo()
-        avatarImage.sd_setImage(with: URL(string: (repository?.userAvatarUrl)!), placeholderImage: UIImage(named: "placeholder.jpg"))
+    @objc func clickAddToBookmarksButton() {
         
-        checkInBookmarks()
-    }
-    
-    func getUserInfo() {
-        userManager.delegate = self
-        guard let currentRepository = repository else { return }
-        userManager.getUserInfo(name: currentRepository.userName)
-    }
-    
-    func checkInBookmarks() {
-        guard let id = repository?.id else { return }
-        addToBookmarksButton?.isEnabled = bookmarkManager.isBookmark(repositoryId: id)
-    }
-    
-    @objc func clickAddToBookmarksButton(_ sender: UIBarButtonItem) {
-        
-        repository?.avatarImageData = avatarImage.image?.pngData()
-        
-        guard let repository = repository else { return }
-        
-        bookmarkManager.save(repository: repository, success: {
-            AlertController.shared.showToast(message: "Bookmark added")
-            self.checkInBookmarks()
-        }, failure: { error in
-            AlertController.shared.showErrorToast(error: error.localizedDescription, autoHide: true)
-        })
+        guard let imageData = avatarImage.image?.pngData() else { return }
+        viewModel?.addToBookmarks(data: imageData)
     }
 }
 

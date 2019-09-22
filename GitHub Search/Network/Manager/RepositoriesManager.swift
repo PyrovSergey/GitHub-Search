@@ -7,36 +7,20 @@
 //
 
 import Foundation
-
-
-protocol RepositoriesManagerDelegate: class {
-    
-    func repositoriesManagerDidUpdateList(_ manager: RepositoriesManager)
-    
-    func clearRepositoriesList()
-    
-}
+import RxSwift
+import RxCocoa
 
 class RepositoriesManager {
     
-    var requestResultList: [Repository] = [] {
-        
-        didSet {
-            delegate?.repositoriesManagerDidUpdateList(self)
-            AlertController.shared.hideToast()
-        }
-    }
-    
-    weak var delegate: RepositoriesManagerDelegate?
+    let clearList = PublishRelay<Bool>()
     
     private var currentRequest: String = "" {
         
         willSet {
-            
             guard currentRequest != newValue else { return }
             numberOfpage = 1
             total = 0
-            self.delegate?.clearRepositoriesList()
+            clearList.accept(true)
         }
     }
     
@@ -64,33 +48,35 @@ class RepositoriesManager {
 // MARK: - Public interface
 extension RepositoriesManager {
     
-    func request(repository name: String) {
+    func request(repository name: String) -> Single<[Repository]> {
         
-        currentRequest = name
-        
-        guard isLastPage == false, ConnectionManager.shared.isConnected else { return }
-        
-        AlertController.shared.showProgress()
-        
-        client.getRepositories(url: URL(string: Keys.requestRepositoryBaseURL.rawValue)!, params: params,
-                               completion: { result in
-                                
-            guard let repositories = result.repositories, let count = result.repositories?.count else { return }
-                                
-            self.requestResultList = repositories
-            self.total += count
-            self.numberOfpage += 1
-                                
-            AlertController.shared.hideProgress()
+        return Single.create(subscribe: { single -> Disposable in
             
-        }, failure: { error in
-            print(error.localizedDescription)
-            AlertController.shared.hideProgress()
+            self.currentRequest = name
+            
+            guard self.isLastPage == false, ConnectionManager.shared.isConnected else {
+                
+                return Disposables.create() }
+            
+            AlertController.shared.showProgress()
+            
+            self.client.getRepositories(url: URL(string: Keys.requestRepositoryBaseURL.rawValue)!, params: self.params,
+                                   completion: { result in
+                                    
+                                    guard let repositories = result.repositories, let count = result.repositories?.count else { return }
+
+                                    single(.success(repositories))
+                                    self.total += count
+                                    self.numberOfpage += 1
+                                    
+            }, failure: { error in
+                single(.error(error))
+            })
+            
+            return Disposables.create {
+                AlertController.shared.hideProgress()
+            }
         })
-        
-//        guard total == 0 else { return }
-//
-//        AlertController.shared.hideProgress()
     }
 }
 
@@ -110,5 +96,4 @@ private extension RepositoriesManager {
         case perRequest = 100
         case maxTotalRepositories = 1000
     }
-    
 }

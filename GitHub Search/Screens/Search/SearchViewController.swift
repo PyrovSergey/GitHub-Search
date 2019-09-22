@@ -54,7 +54,6 @@ private extension SearchViewController {
         
         tableView.rx.willDisplayCell
             .subscribe(onNext: { (cell, indexPath) in
-                //print("\(indexPath.row)")
                 self.searchViewModel
                     .willDisplayCell(index: indexPath.row)
             }).disposed(by: bag)
@@ -68,17 +67,20 @@ private extension SearchViewController {
             .orEmpty
             .bind(to: searchViewModel.searchText)
             .disposed(by: bag)
+        
+        let click = searchBar.rx.searchButtonClicked.asObservable()
+        
+        click.subscribe(onNext: {
+            self.searchViewModel.search()
+        }).disposed(by: bag)
     }
     
     func startDetailController(repository: Repository) {
         let vc = DetailViewController.instantinateFromStoryboard()
-        vc.config(repository: repository)
+        vc.viewModel = DetailViewModel(repository: repository)
         navigationController?.pushViewController(vc, animated: true)
     }
 }
 
 // MARK: - StoryboardInstantinable
 extension SearchViewController: StoryboardInstantinable {}
-
-
-
