@@ -8,23 +8,7 @@
 
 import RxSwift
 
-
-protocol UserManagerDelegate: class {
-    
-    func updateUserInfo(_ manager: UserManager)
-    
-}
-
 class UserManager {
-    
-    weak var delegate: UserManagerDelegate?
-    
-    var user: User? {
-        
-        didSet {
-            delegate?.updateUserInfo(self)
-        }
-    }
     
     private let client = APIClient.shared
 }
@@ -53,7 +37,6 @@ extension UserManager {
 private extension UserManager {
     
     enum Keys: String {
-        
         case requestUserBaseURL = "https://api.github.com/users/"
     }
 }

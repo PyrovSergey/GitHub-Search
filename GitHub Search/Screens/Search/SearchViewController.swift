@@ -16,6 +16,7 @@ class SearchViewController: UIViewController {
     @IBOutlet private weak var searchBar: UISearchBar!
     @IBOutlet private weak var tableView: UITableView!
     @IBOutlet private var searchViewModel: SearchViewModel!
+    @IBOutlet private weak var emptyLabel: UILabel!
     
     private let bag = DisposeBag()
 }
@@ -43,10 +44,10 @@ private extension SearchViewController {
     }
     
     func bind() {
+        
         searchViewModel
             .repositories
-            .drive(tableView.rx.items(cellIdentifier: "RepositoryCell", cellType: RepositoryCell.self)) { row, element, cell in
-                self.tableView.isHidden = row == 0
+            .drive(tableView.rx.items(cellIdentifier: "repositoryCell", cellType: RepositoryCell.self)) { row, element, cell in
                 cell.repositoryName.text = element.nameOfRepository
                 cell.ownerName.text = element.userName
                 cell.avatarImageView.sd_setImage(with: URL(string: element.userAvatarUrl ?? ""), placeholderImage: UIImage(named: "placeholder.jpg"))
@@ -66,6 +67,10 @@ private extension SearchViewController {
         searchBar.rx.text
             .orEmpty
             .bind(to: searchViewModel.searchText)
+            .disposed(by: bag)
+        
+        searchViewModel.repositories.map{!$0.isEmpty}
+            .drive(emptyLabel.rx.isHidden)
             .disposed(by: bag)
         
         let click = searchBar.rx.searchButtonClicked.asObservable()

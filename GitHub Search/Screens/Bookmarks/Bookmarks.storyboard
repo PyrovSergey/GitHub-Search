@@ -18,18 +18,12 @@
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="No bookmarks" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cRs-oT-ore">
-                                <rect key="frame" x="132" y="433.5" width="150.5" height="29"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="24"/>
-                                <color key="textColor" white="0.66666666669999997" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <nil key="highlightedColor"/>
-                            </label>
-                            <tableView hidden="YES" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="Brp-jl-WmK">
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="28" sectionFooterHeight="28" translatesAutoresizingMaskIntoConstraints="NO" id="Brp-jl-WmK">
                                 <rect key="frame" x="0.0" y="44" width="414" height="818"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <color key="sectionIndexBackgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <prototypes>
-                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="BookmarkCell" rowHeight="70" id="Mkf-Y5-RM5" customClass="BookmarkCell" customModule="GitHub_Search" customModuleProvider="target">
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="bookmarkCell" rowHeight="70" id="Mkf-Y5-RM5" customClass="BookmarkCell" customModule="GitHub_Search" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="28" width="414" height="70"/>
                                         <autoresizingMask key="autoresizingMask"/>
                                         <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="Mkf-Y5-RM5" id="20g-QN-dgt">
@@ -85,29 +79,33 @@
                                         </connections>
                                     </tableViewCell>
                                 </prototypes>
-                                <connections>
-                                    <outlet property="dataSource" destination="fyz-SB-cYy" id="wiE-4e-WaP"/>
-                                    <outlet property="delegate" destination="fyz-SB-cYy" id="U0K-29-D2f"/>
-                                </connections>
                             </tableView>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="No bookmarks" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="UEU-5k-xL5">
+                                <rect key="frame" x="132" y="433.5" width="150.5" height="29"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="24"/>
+                                <color key="textColor" white="0.66666666666666663" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
                             <constraint firstItem="Brp-jl-WmK" firstAttribute="leading" secondItem="Y4k-04-6St" secondAttribute="leading" id="DY0-4S-piI"/>
-                            <constraint firstItem="cRs-oT-ore" firstAttribute="centerY" secondItem="Adw-jI-qb3" secondAttribute="centerY" id="OdI-iI-8iV"/>
+                            <constraint firstItem="UEU-5k-xL5" firstAttribute="centerY" secondItem="Adw-jI-qb3" secondAttribute="centerY" id="Lni-VZ-lVy"/>
                             <constraint firstItem="Y4k-04-6St" firstAttribute="bottom" secondItem="Brp-jl-WmK" secondAttribute="bottom" id="OgK-nQ-Pgy"/>
-                            <constraint firstItem="cRs-oT-ore" firstAttribute="centerX" secondItem="Adw-jI-qb3" secondAttribute="centerX" id="aXb-6v-UzN"/>
+                            <constraint firstItem="UEU-5k-xL5" firstAttribute="centerX" secondItem="Adw-jI-qb3" secondAttribute="centerX" id="dom-Q4-psF"/>
                             <constraint firstItem="Brp-jl-WmK" firstAttribute="top" secondItem="Y4k-04-6St" secondAttribute="top" id="jev-Dd-Naz"/>
                             <constraint firstItem="Brp-jl-WmK" firstAttribute="trailing" secondItem="Y4k-04-6St" secondAttribute="trailing" id="q0K-PQ-tKn"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="Y4k-04-6St"/>
                     </view>
                     <connections>
-                        <outlet property="emptyLabel" destination="cRs-oT-ore" id="diO-yF-z6a"/>
+                        <outlet property="emptyLabel" destination="UEU-5k-xL5" id="BS7-t6-Xkw"/>
+                        <outlet property="model" destination="QI4-Bf-o7q" id="xpj-g5-jhX"/>
                         <outlet property="tableView" destination="Brp-jl-WmK" id="FFa-4g-hFO"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="xiZ-xy-GsJ" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                <customObject id="QI4-Bf-o7q" customClass="BookmarksViewModel" customModule="GitHub_Search" customModuleProvider="target"/>
             </objects>
             <point key="canvasLocation" x="1935" y="501"/>
         </scene>

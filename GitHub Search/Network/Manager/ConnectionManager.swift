@@ -56,9 +56,7 @@ private extension ConnectionManager {
     func updateViewState() {
         
         if isConnected {
-            
             AlertController.shared.hideToast()
-
         } else {
             AlertController.shared.showErrorToast(error: "No connection",
                                              autoHide: false)
@@ -71,7 +69,6 @@ private extension ConnectionManager {
             isConnected = false
             return
         }
-        
         isConnected = connection != .none
     }
 }

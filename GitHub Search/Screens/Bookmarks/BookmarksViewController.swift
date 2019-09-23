@@ -6,22 +6,18 @@
 //  Copyright © 2019 PyrovSergey. All rights reserved.
 //
 
-import UIKit
+import RxSwift
+import RxCocoa
 import SwipeCellKit
 
 
 class BookmarksViewController: UIViewController {
     
-    @IBOutlet weak var emptyLabel: UILabel!
-    @IBOutlet weak var tableView: UITableView!
+    @IBOutlet private weak var emptyLabel: UILabel!
+    @IBOutlet private weak var tableView: UITableView!
+    @IBOutlet private var model: BookmarksViewModel!
     
-    private var bookmarks: [Bookmark] = [] {
-        didSet {
-            updateTableView()
-        }
-    }
-    
-    private let bookmarksManager = BookmarksManager.share
+    private let bag = DisposeBag()
 }
 
 // MARK: - Override
@@ -30,45 +26,11 @@ extension BookmarksViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupView()
-        bookmarksManager.delegate = self
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        bookmarksManager.load()
-    }
-}
-
-// MARK: - UITableViewDelegate
-extension BookmarksViewController: UITableViewDelegate {
-    
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        startDetailController(bookmark: bookmarks[indexPath.row])
-    }
-}
-
-// MARK: - UITableViewDataSource
-extension BookmarksViewController: UITableViewDataSource {
-    
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return bookmarks.count
-    }
-    
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        
-        guard let cell: BookmarkCell = tableView.dequeueReusableCell(for: indexPath) else {
-            return UITableViewCell()
-        }
-        
-        let bookmark = bookmarks[indexPath.row]
-        cell.delegate = self
-        cell.repositoryName.text = bookmark.repositoryName
-        cell.ownerName.text = bookmark.ownerName
-        cell.avatarImageView.image = UIImage(named: "placeholder.jpg")
-        if let imageData = bookmark.imageData {
-            cell.avatarImageView.image = UIImage(data: imageData)
-        }
-        return cell
+        model.loadBookmarks()
     }
 }
 
@@ -78,23 +40,11 @@ extension BookmarksViewController: SwipeTableViewCellDelegate {
     func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath, for orientation: SwipeActionsOrientation) -> [SwipeAction]? {
         guard orientation == .right else { return nil }
         let deleteAction = SwipeAction(style: .destructive, title: "Delete") { action, indexPath in
-            
-            self.updateModel(at: indexPath)
-            action.fulfill(with: .delete)
+            self.model.deleteBookmark(at: indexPath)
         }
         
         deleteAction.image = UIImage(named: "delete")
         return [deleteAction]
-    }
-}
-
-// MARK: - BookmarksManagerDelegate
-extension BookmarksViewController: BookmarksManagerDelegate {
-    
-    func bookmarksManagerDelegateDidUpdateList(_ manager: BookmarksManager) {
-        
-        guard let newBookmarksList = manager.bookmarks else { return }
-        bookmarks = newBookmarksList
     }
 }
 
@@ -106,19 +56,30 @@ private extension BookmarksViewController {
         tableView.keyboardDismissMode = .onDrag
         tableView.rowHeight = 70
         tableView.separatorStyle = .none
-        
         title = "Bookmarks"
-    }
-    
-    func updateTableView() {
         
-        tableView.isHidden = bookmarks.isEmpty
-        emptyLabel.isHidden = !bookmarks.isEmpty
-        tableView.reloadData()
+        bind()
     }
     
-    func updateModel(at indexPath: IndexPath) {
-        bookmarksManager.delete(bookmark: bookmarks[indexPath.row])
+    func bind() {
+        
+        model.bookmarks.drive(tableView.rx.items(cellIdentifier: "bookmarkCell", cellType: BookmarkCell.self)) { row, element, cell in
+            cell.rx.base.delegate = self
+            cell.repositoryName.text = element.repositoryName
+            cell.ownerName.text = element.ownerName
+            cell.avatarImageView.image = UIImage(named: "placeholder.jpg")
+            if let imageData = element.imageData {
+                cell.avatarImageView.image = UIImage(data: imageData)
+            }
+        }.disposed(by: bag)
+        
+        tableView.rx.modelSelected(Bookmark.self).subscribe(onNext: { [weak self] bookmark in
+            self?.startDetailController(bookmark: bookmark)
+        }).disposed(by: bag)
+        
+        model.bookmarks.map{!$0.isEmpty}
+            .drive(emptyLabel.rx.isHidden)
+            .disposed(by: bag)
     }
     
     func startDetailController(bookmark: Bookmark) {

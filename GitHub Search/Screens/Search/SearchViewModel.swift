@@ -57,13 +57,7 @@ private extension SearchViewModel {
                 }
             }).disposed(by: bag)
         
-        searchText
-            .distinctUntilChanged()
-            .subscribe { (event) in
-                //self.clearRepositories()
-            }.disposed(by: bag)
-        
-        manager.clearList.subscribe(onNext: { _ in
+        manager.clearList.subscribe({ _ in
             self.clearRepositories()
         }).disposed(by: bag)
     }
@@ -74,7 +68,7 @@ private extension SearchViewModel {
             .subscribe(onSuccess: { repositories in
                 self.privateDataSource.accept(self.privateDataSource.value + repositories)
         }) { error in
-            
+            self.clearRepositories()
         }.disposed(by: bag)
     }
     

@@ -42,7 +42,6 @@ class RepositoriesManager {
             Keys.perPage.rawValue: String(Constants.perRequest.rawValue),
             Keys.page.rawValue : String(numberOfpage)]
     }
-    
 }
 
 // MARK: - Public interface
@@ -56,7 +55,8 @@ extension RepositoriesManager {
             
             guard self.isLastPage == false, ConnectionManager.shared.isConnected else {
                 
-                return Disposables.create() }
+                return Disposables.create()
+            }
             
             AlertController.shared.showProgress()
             

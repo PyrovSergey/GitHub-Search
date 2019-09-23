@@ -9,28 +9,9 @@
 import RxSwift
 import CoreData
 
-
-protocol BookmarksManagerDelegate: class {
-    
-    func bookmarksManagerDelegateDidUpdateList(_ manager: BookmarksManager)
-    
-}
-
 class BookmarksManager {
     
-    static let share = BookmarksManager()
-    
-    private init() {
-        load()
-    }
-    
-    weak var delegate: BookmarksManagerDelegate?
-    
-    var bookmarks: [Bookmark]? {
-        didSet {
-            delegate?.bookmarksManagerDelegateDidUpdateList(self)
-        }
-    }
+    private var bookmarks: [Bookmark]?
     
     private var context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     private var dateSortDescriptor = NSSortDescriptor(key: "dateCreated", ascending: true)
@@ -39,33 +20,23 @@ class BookmarksManager {
 // MARK: - Public interface
 extension BookmarksManager {
     
-    func load() {
+    func load() -> Single<[Bookmark]> {
         
-        let fetchRequest: NSFetchRequest<Bookmark> = Bookmark.fetchRequest()
-        fetchRequest.sortDescriptors = [ dateSortDescriptor ]
-        
-        do {
-            let resultFetchRequest = try context.fetch(fetchRequest)
-            bookmarks = resultFetchRequest
-        } catch {
-            print(error.localizedDescription)
-        }
-    }
-    
-    func save(repository: Repository,
-              success: @escaping () -> (),
-              failure: @escaping  (Error) -> ()) {
-        
-        let bookmark = transfer(repository)
-        
-        do {
-            bookmarks?.append(bookmark)
-            try context.save()
-            success()
-        } catch {
-            print(error.localizedDescription)
-            failure(error)
-        }
+        return Single.create(subscribe: { single -> Disposable in
+            
+            let fetchRequest: NSFetchRequest<Bookmark> = Bookmark.fetchRequest()
+            fetchRequest.sortDescriptors = [ self.dateSortDescriptor ]
+
+            do {
+                let resultRequest = try self.context.fetch(fetchRequest)
+                print(resultRequest.count)
+                self.bookmarks = resultRequest
+                single(.success(resultRequest))
+            } catch {
+                single(.error(error))
+            }
+            return Disposables.create()
+        })
     }
     
     func save(repository: Repository) -> Completable {
@@ -84,16 +55,24 @@ extension BookmarksManager {
         })
     }
     
-    func delete(bookmark: Bookmark) {
+    func delete(at indexPath: IndexPath) -> Completable {
         
-        context.delete(bookmark)
-        
-        do {
-            try context.save()
-            load()
-        } catch {
-            print(error.localizedDescription)
-        }
+        return Completable.create(subscribe: { event -> Disposable in
+            
+            guard let bookmark = self.bookmarks?[indexPath.row] else {
+                return Disposables.create()
+            }
+            
+            self.context.delete(bookmark)
+            do {
+                try self.context.save()
+                event(.completed)
+            } catch {
+                event(.error(error))
+            }
+            
+            return Disposables.create()
+        })
     }
     
     func isBookmark(repositoryId: Int) -> Single<Bool> {
@@ -122,7 +101,6 @@ private extension BookmarksManager {
     func transfer(_ repository: Repository) -> Bookmark {
         
         let entity = NSEntityDescription.entity(forEntityName: "Bookmark", in: context)
-        
         let newBookmark = NSManagedObject(entity: entity!, insertInto: context) as! Bookmark
         
         newBookmark.dateCreated = Date()

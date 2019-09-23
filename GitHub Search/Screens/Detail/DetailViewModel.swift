@@ -31,7 +31,7 @@ class DetailViewModel {
         return bookmarkState.asDriver()
     }
     
-    private var bookmarkManager = BookmarksManager.share
+    private var bookmarkManager = BookmarksManager()
     private var userManager = UserManager()
     
     private let bag = DisposeBag()
